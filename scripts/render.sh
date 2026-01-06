@@ -1,16 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Load .env into the environment
+if [ ! -f .env ]; then
+  echo "ERROR: .env not found. Run: make setup"
+  exit 1
+fi
+
+# Auto-export everything loaded from .env
+set -o allexport
 source ./.env
-set +a
+set +o allexport
 
 mkdir -p helm
 
-# Generate docker-compose.yml from template
 envsubst < docker-compose.template.yml > docker-compose.generated.yml
-
-# Generate helm values from template
 envsubst < helm/values.template.yaml > helm/values.generated.yaml
 
 echo "Wrote:"
