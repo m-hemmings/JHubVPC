@@ -9,7 +9,7 @@ HELM_GEN := helm/values.generated.yaml
 DEFAULT_NS := jhub
 DEFAULT_RELEASE := jhub
 
-.PHONY: help setup env render images clean dc-up dc-down k8s-up k8s-down all-local all-k8s
+.PHONY: help setup env render images clean dc-up dc-down k8s-up k8s-down all-local all-k8s setup-local setup-k8s
 
 help:
 	@echo "Targets:"
@@ -21,9 +21,17 @@ help:
 	@echo "  make k8s-up    - deploy JupyterHub to k8s via Helm (prompts for namespace)"
 	@echo "  make k8s-down  - uninstall Helm release + delete namespace (prompts + password)"
 
+setup-local:
+	@$(MAKE) setup MODE=local
+
+setup-k8s:
+	@$(MAKE) setup MODE=k8s
+
 setup:
-	@$(MAKE) env
-	@$(MAKE) render
+	@MODE=$${MODE:-local}; \
+	$(MAKE) env MODE="$$MODE"; \
+	$(MAKE) render
+
 
 env:
 	@set -euo pipefail; \
@@ -61,6 +69,15 @@ env:
 		echo "Generated K8S_DOWN_PASSWORD: $$KP"; \
 	fi; \
 	\
+	# Determine default push behavior based on MODE (local vs k8s) \
+	MODE=$${MODE:-local}; \
+	if [ "$$MODE" = "k8s" ]; then \
+		PUSH=1; \
+	else \
+		PUSH=0; \
+	fi; \
+	\
+
 	# If we started from .env.example, we still want to ensure required keys exist. \
 	# We'll rewrite the file to a known-good baseline so behavior is deterministic. \
 	echo "Writing .env..."; \
@@ -68,6 +85,7 @@ env:
 'PROJECT_NAME=jhub' \
 'TAG=0.1.0' \
 "REGISTRY=$$REG" \
+"PUSH_IMAGES=$$PUSH" \
 'COMPOSE_HUB_HTTP_PORT=8000' \
 'VNC_PW=changeme' \
 'VNC_RESOLUTION=1600x900' \
@@ -153,14 +171,14 @@ k8s-down:
 
 all-local:
 	@echo "=== Running full local setup ==="
-	@$(MAKE) setup
-	@$(MAKE) images
+	@$(MAKE) setup MODE=local
+	@PUSH_IMAGES=0 $(MAKE) images
 	@$(MAKE) dc-up
 	@echo "=== Local environment is up ==="
 
 all-k8s:
 	@echo "=== Running full Kubernetes setup ==="
-	@$(MAKE) setup
-	@$(MAKE) images
+	@$(MAKE) setup MODE=k8s
+	@PUSH_IMAGES=1 $(MAKE) images
 	@$(MAKE) k8s-up
 	@echo "=== Kubernetes environment is up ==="
