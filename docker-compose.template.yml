@@ -1,0 +1,26 @@
+services:
+  hub:
+    image: jupyterhub/jupyterhub:4.1
+    container_name: ${PROJECT_NAME}-hub
+    ports:
+      - "${COMPOSE_HUB_HTTP_PORT}:8000"
+    volumes:
+      - ./local/jupyterhub_config.py:/srv/jupyterhub/jupyterhub_config.py:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - hub-data:/data
+    environment:
+      - DOCKER_NETWORK_NAME=${PROJECT_NAME}_default
+      - DATASCI_IMAGE=${DATASCI_IMAGE}
+      - DESKTOP_IMAGE=${DESKTOP_IMAGE}
+      - VNC_PW=${VNC_PW}
+      - VNC_RESOLUTION=${VNC_RESOLUTION}
+      - VNC_COL_DEPTH=${VNC_COL_DEPTH}
+    command: >
+      bash -lc "
+      pip install --no-cache-dir dockerspawner jupyterhub-nativeauthenticator &&
+      jupyterhub -f /srv/jupyterhub/jupyterhub_config.py
+      "
+    restart: unless-stopped
+
+volumes:
+  hub-data:
