@@ -23,9 +23,19 @@ RUN pip3 install --no-cache-dir jupyter-server-proxy
 ARG USERNAME=jovyan
 ARG UID=1000
 ARG GID=100
-RUN groupadd -g ${GID} ${USERNAME} \
- && useradd -m -s /bin/bash -u ${UID} -g ${GID} ${USERNAME} \
- && echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${USERNAME}
+
+RUN set -eux; \
+    EXISTING_GROUP="$(getent group ${GID} | cut -d: -f1 || true)"; \
+    if [ -n "${EXISTING_GROUP}" ]; then \
+        GROUP_NAME="${EXISTING_GROUP}"; \
+    else \
+        GROUP_NAME="${USERNAME}"; \
+        groupadd -g "${GID}" "${GROUP_NAME}"; \
+    fi; \
+    useradd -m -s /bin/bash -u "${UID}" -g "${GID}" "${USERNAME}"; \
+    echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/${USERNAME}"; \
+    chmod 0440 "/etc/sudoers.d/${USERNAME}"
+
 
 COPY start-desktop.sh /usr/local/bin/start-desktop.sh
 RUN chmod +x /usr/local/bin/start-desktop.sh
