@@ -41,29 +41,47 @@ env:
 		esac; \
 	fi; \
 	if [ -f .env.example ]; then \
+		echo "Creating .env from .env.example (will still prompt for key values)"; \
 		cp .env.example .env; \
-		echo "Created .env from .env.example"; \
-	else \
-		echo "Creating default .env"; \
-		cat > .env <<'EOF' ;\
-PROJECT_NAME=jhub \
-TAG=0.1.0 \
-REGISTRY=yourdockerhubusername \
-COMPOSE_HUB_HTTP_PORT=8000 \
-VNC_PW=changeme \
-VNC_RESOLUTION=1600x900 \
-VNC_COL_DEPTH=24 \
-K8S_NAMESPACE=jhub \
-HELM_RELEASE=jhub \
-DUMMY_PASSWORD=changeme \
-# Used to protect destructive 'make k8s-down' \
-K8S_DOWN_PASSWORD=please-change-me \
-DATASCI_IMAGE=$${REGISTRY}/jhub-datasci-proxy:$${TAG} \
-DESKTOP_IMAGE=$${REGISTRY}/jhub-desktop-xfce-novnc:$${TAG} \
-EOF \
-		; \
-		echo "Created default .env (edit REGISTRY/passwords/etc.)"; \
-	fi
+	fi; \
+	\
+	# Prompt for Docker Hub username (REGISTRY) \
+	read -p "Docker Hub username/org (REGISTRY) [yourdockerhubusername]: " REG; \
+	REG=$${REG:-yourdockerhubusername}; \
+	\
+	# Prompt for k8s teardown password (stored in .env, used as a speed bump) \
+	read -s -p "Set K8S_DOWN_PASSWORD (leave blank to auto-generate): " KP; \
+	echo; \
+	if [ -z "$$KP" ]; then \
+		if command -v openssl >/dev/null 2>&1; then \
+			KP=$$(openssl rand -hex 12); \
+		else \
+			KP=$$(head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n'); \
+		fi; \
+		echo "Generated K8S_DOWN_PASSWORD: $$KP"; \
+	fi; \
+	\
+	# If we started from .env.example, we still want to ensure required keys exist. \
+	# We'll rewrite the file to a known-good baseline so behavior is deterministic. \
+	echo "Writing .env..."; \
+	printf '%s\n' \
+'PROJECT_NAME=jhub' \
+'TAG=0.1.0' \
+"REGISTRY=$$REG" \
+'COMPOSE_HUB_HTTP_PORT=8000' \
+'VNC_PW=changeme' \
+'VNC_RESOLUTION=1600x900' \
+'VNC_COL_DEPTH=24' \
+'K8S_NAMESPACE=jhub' \
+'HELM_RELEASE=jhub' \
+'DUMMY_PASSWORD=changeme' \
+"K8S_DOWN_PASSWORD=$$KP" \
+'DATASCI_IMAGE=$${REGISTRY}/jhub-datasci-proxy:$${TAG}' \
+'DESKTOP_IMAGE=$${REGISTRY}/jhub-desktop-xfce-novnc:$${TAG}' \
+		> .env; \
+	echo "Done. Edit .env if you want different ports/tags/passwords."
+
+
 
 render:
 	@./scripts/render.sh
