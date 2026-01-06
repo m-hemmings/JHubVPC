@@ -9,7 +9,7 @@ HELM_GEN := helm/values.generated.yaml
 DEFAULT_NS := jhub
 DEFAULT_RELEASE := jhub
 
-.PHONY: help setup env render images clean dc-up dc-down k8s-up k8s-down
+.PHONY: help setup env render images clean dc-up dc-down k8s-up k8s-down all-local all-k8s
 
 help:
 	@echo "Targets:"
@@ -132,3 +132,17 @@ k8s-down:
 	helm uninstall "$$RELEASE" -n "$$NS" >/dev/null 2>&1 || true; \
 	echo "Deleting namespace '$$NS'..."; \
 	kubectl delete namespace "$$NS" --wait=true
+
+all-local:
+	@echo "=== Running full local setup ==="
+	@$(MAKE) setup
+	@$(MAKE) images
+	@$(MAKE) dc-up
+	@echo "=== Local environment is up ==="
+
+all-k8s:
+	@echo "=== Running full Kubernetes setup ==="
+	@$(MAKE) setup
+	@$(MAKE) images
+	@$(MAKE) k8s-up
+	@echo "=== Kubernetes environment is up ==="
