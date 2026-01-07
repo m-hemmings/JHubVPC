@@ -34,72 +34,7 @@ setup:
 
 
 env:
-	@set -euo pipefail; \
-	if [ -f .env ]; then \
-		read -p ".env already exists. Overwrite it? [y/N]: " ans; \
-		case "$$ans" in \
-			y|Y|yes|YES) \
-				echo "Overwriting .env..."; \
-				rm -f .env; \
-			;; \
-			*) \
-				echo "Keeping existing .env."; \
-				exit 0; \
-			;; \
-		esac; \
-	fi; \
-	if [ -f .env.example ]; then \
-		echo "Creating .env from .env.example (will still prompt for key values)"; \
-		cp .env.example .env; \
-	fi; \
-	\
-	# Prompt for Docker Hub username (REGISTRY) \
-	read -p "Docker Hub username/org (REGISTRY) [yourdockerhubusername]: " REG; \
-	REG=$${REG:-yourdockerhubusername}; \
-	\
-	# Prompt for k8s teardown password (stored in .env, used as a speed bump) \
-	read -s -p "Set K8S_DOWN_PASSWORD (leave blank to auto-generate): " KP; \
-	echo; \
-	if [ -z "$$KP" ]; then \
-		if command -v openssl >/dev/null 2>&1; then \
-			KP=$$(openssl rand -hex 12); \
-		else \
-			KP=$$(head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n'); \
-		fi; \
-		echo "Generated K8S_DOWN_PASSWORD: $$KP"; \
-	fi; \
-	\
-	# Determine default push behavior based on MODE (local vs k8s) \
-	MODE=$${MODE:-local}; \
-	if [ "$$MODE" = "k8s" ]; then \
-		PUSH=1; \
-	else \
-		PUSH=0; \
-	fi; \
-	\
-
-	# If we started from .env.example, we still want to ensure required keys exist. \
-	# We'll rewrite the file to a known-good baseline so behavior is deterministic. \
-	echo "Writing .env..."; \
-	printf '%s\n' \
-'PROJECT_NAME=jhub' \
-'TAG=0.1.0' \
-"REGISTRY=$$REG" \
-"PUSH_IMAGES=$$PUSH" \
-'COMPOSE_HUB_HTTP_PORT=8000' \
-'VNC_PW=changeme' \
-'VNC_RESOLUTION=1600x900' \
-'VNC_COL_DEPTH=24' \
-'K8S_NAMESPACE=jhub' \
-'HELM_RELEASE=jhub' \
-'DUMMY_PASSWORD=changeme' \
-"K8S_DOWN_PASSWORD=$$KP" \
-'DATASCI_IMAGE=$${REGISTRY}/jhub-datasci-proxy:$${TAG}' \
-'DESKTOP_IMAGE=$${REGISTRY}/jhub-desktop-xfce-novnc:$${TAG}' \
-		> .env; \
-	echo "Done. Edit .env if you want different ports/tags/passwords."
-
-
+	@MODE=$${MODE:-local} ./scripts/env-init.sh
 
 render:
 	@./scripts/render.sh
