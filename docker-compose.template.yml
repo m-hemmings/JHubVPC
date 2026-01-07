@@ -1,3 +1,5 @@
+name: ${PROJECT_NAME}
+
 services:
   hub:
     image: jupyterhub/jupyterhub:4.1
