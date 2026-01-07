@@ -36,3 +36,6 @@ def pre_spawn_hook(spawner):
         })
 
 c.Spawner.pre_spawn_hook = pre_spawn_hook
+
+c.JupyterHub.hub_bind_url = "http://0.0.0.0:8081"
+c.JupyterHub.hub_connect_url = "http://hub:8081"
